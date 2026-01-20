@@ -26,7 +26,7 @@ def load_eyeQ_excel(data_dir, list_file, n_class=3):
             # Original EyeQ format: convert .jpeg to .png
             image_names.append(os.path.join(data_dir, image_name[:-5] + '.png'))
 
-        label = lb.transform([int(df_tmp["quality"][idx])])
+        label = lb.transform([int(df_tmp["quality"][idx])])[0]  # Remove extra dimension
         labels.append(label)
 
     return image_names, labels
