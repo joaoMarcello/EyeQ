@@ -18,7 +18,13 @@ def load_eyeQ_excel(data_dir, list_file, n_class=3):
 
     for idx in range(img_num):
         image_name = df_tmp["image"][idx]
-        image_names.append(os.path.join(data_dir, image_name[:-5] + '.png'))
+        # Use the image name as-is (already has .jpg extension for Itapecuru)
+        # For EyeQ compatibility, check if it's already a full extension
+        if image_name.endswith('.jpg') or image_name.endswith('.jpeg') or image_name.endswith('.png'):
+            image_names.append(os.path.join(data_dir, image_name))
+        else:
+            # Original EyeQ format: convert .jpeg to .png
+            image_names.append(os.path.join(data_dir, image_name[:-5] + '.png'))
 
         label = lb.transform([int(df_tmp["quality"][idx])])
         labels.append(label)

@@ -1,0 +1,202 @@
+{
+  "epochs": [
+    {
+      "epoch": 1,
+      "train": {
+        "loss": 0.8456
+      },
+      "valid": {
+        "loss": 0.7234,
+        "acc": 0.5432,
+        "f1_macro": 0.5123,
+        "precision_macro": 0.5345,
+        "sensitivity_macro": 0.5234,
+        "specificity_macro": 0.7456,
+        "auc": 0.6789,
+        "kappa": 0.3456,
+        "confusion_matrix": [
+          [45, 12, 8],
+          [18, 52, 15],
+          [10, 20, 35]
+        ],
+        "f1_per_class": {
+          "Good": 0.5234,
+          "Usable": 0.4876,
+          "Reject": 0.5259
+        },
+        "sensitivity_per_class": {
+          "Good": 0.6923,
+          "Usable": 0.6118,
+          "Reject": 0.5385
+        },
+        "specificity_per_class": {
+          "Good": 0.7234,
+          "Usable": 0.7456,
+          "Reject": 0.7678
+        }
+      }
+    },
+    {
+      "epoch": 2,
+      "train": {
+        "loss": 0.6234
+      },
+      "valid": {
+        "loss": 0.5678,
+        "acc": 0.6543,
+        "f1_macro": 0.6432,
+        "precision_macro": 0.6567,
+        "sensitivity_macro": 0.6498,
+        "specificity_macro": 0.8234,
+        "auc": 0.7890,
+        "kappa": 0.4876,
+        "confusion_matrix": [
+          [52, 9, 4],
+          [12, 61, 12],
+          [7, 15, 43]
+        ],
+        "f1_per_class": {
+          "Good": 0.6543,
+          "Usable": 0.6234,
+          "Reject": 0.6520
+        },
+        "sensitivity_per_class": {
+          "Good": 0.8000,
+          "Usable": 0.7176,
+          "Reject": 0.6615
+        },
+        "specificity_per_class": {
+          "Good": 0.8123,
+          "Usable": 0.8234,
+          "Reject": 0.8345
+        }
+      }
+    },
+    {
+      "epoch": 3,
+      "train": {
+        "loss": 0.4567
+      },
+      "valid": {
+        "loss": 0.4123,
+        "acc": 0.7654,
+        "f1_macro": 0.7543,
+        "precision_macro": 0.7678,
+        "sensitivity_macro": 0.7598,
+        "specificity_macro": 0.8789,
+        "auc": 0.8765,
+        "kappa": 0.6543,
+        "confusion_matrix": [
+          [58, 5, 2],
+          [8, 68, 9],
+          [4, 10, 51]
+        ],
+        "f1_per_class": {
+          "Good": 0.7692,
+          "Usable": 0.7456,
+          "Reject": 0.7481
+        },
+        "sensitivity_per_class": {
+          "Good": 0.8923,
+          "Usable": 0.8000,
+          "Reject": 0.7846
+        },
+        "specificity_per_class": {
+          "Good": 0.8765,
+          "Usable": 0.8789,
+          "Reject": 0.8813
+        }
+      }
+    },
+    {
+      "epoch": 4,
+      "train": {
+        "loss": 0.3456
+      },
+      "valid": {
+        "loss": 0.3234,
+        "acc": 0.8321,
+        "f1_macro": 0.8234,
+        "precision_macro": 0.8345,
+        "sensitivity_macro": 0.8267,
+        "specificity_macro": 0.9123,
+        "auc": 0.9234,
+        "kappa": 0.7432,
+        "confusion_matrix": [
+          [61, 3, 1],
+          [6, 72, 7],
+          [3, 7, 55]
+        ],
+        "f1_per_class": {
+          "Good": 0.8372,
+          "Usable": 0.8148,
+          "Reject": 0.8182
+        },
+        "sensitivity_per_class": {
+          "Good": 0.9385,
+          "Usable": 0.8471,
+          "Reject": 0.8462
+        },
+        "specificity_per_class": {
+          "Good": 0.9123,
+          "Usable": 0.9123,
+          "Reject": 0.9123
+        }
+      }
+    },
+    {
+      "epoch": 5,
+      "train": {
+        "loss": 0.2890
+      },
+      "valid": {
+        "loss": 0.2847,
+        "acc": 0.8549,
+        "f1_macro": 0.8456,
+        "precision_macro": 0.8523,
+        "sensitivity_macro": 0.8498,
+        "specificity_macro": 0.9234,
+        "auc": 0.9345,
+        "kappa": 0.7789,
+        "confusion_matrix": [
+          [62, 2, 1],
+          [5, 74, 6],
+          [2, 6, 57]
+        ],
+        "f1_per_class": {
+          "Good": 0.8571,
+          "Usable": 0.8395,
+          "Reject": 0.8402
+        },
+        "sensitivity_per_class": {
+          "Good": 0.9538,
+          "Usable": 0.8706,
+          "Reject": 0.8769
+        },
+        "specificity_per_class": {
+          "Good": 0.9234,
+          "Usable": 0.9234,
+          "Reject": 0.9234
+        }
+      }
+    }
+  ],
+  "config": {
+    "model": "DenseNet121_Itapecuru",
+    "epochs": 20,
+    "batch_size": 4,
+    "lr": 0.01,
+    "loss_weights": [
+      0.1,
+      0.1,
+      0.1,
+      0.1,
+      0.6
+    ],
+    "image_size": 224,
+    "n_classes": 3,
+    "train_samples": 1708,
+    "valid_samples": 123,
+    "test_samples": 448
+  }
+}
