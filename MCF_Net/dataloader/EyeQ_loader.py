@@ -67,11 +67,8 @@ class DatasetGenerator(Dataset):
             img_hsv = self.transform2(img_hsv)
             img_lab = self.transform2(img_lab)
 
-        if self.set_name == 'train':
-            label = self.labels[index]
-            return torch.FloatTensor(img_rgb), torch.FloatTensor(img_hsv), torch.FloatTensor(img_lab), torch.FloatTensor(label)
-        else:
-            return torch.FloatTensor(img_rgb), torch.FloatTensor(img_hsv), torch.FloatTensor(img_lab)
+        label = self.labels[index]
+        return torch.FloatTensor(img_rgb), torch.FloatTensor(img_hsv), torch.FloatTensor(img_lab), torch.FloatTensor(label)
 
     def __len__(self):
         return len(self.image_names)

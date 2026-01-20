@@ -328,13 +328,7 @@ if __name__ == '__main__':
         valid_all_probs = []
         
         with torch.no_grad():
-            for batch_data in valid_loader:
-                if len(batch_data) == 4:
-                    imagesA, imagesB, imagesC, labels = batch_data
-                else:
-                    # Fallback caso não tenha labels no valid
-                    continue
-                
+            for imagesA, imagesB, imagesC, labels in valid_loader:
                 imagesA = imagesA.to(device)
                 imagesB = imagesB.to(device)
                 imagesC = imagesC.to(device)
@@ -418,6 +412,9 @@ if __name__ == '__main__':
             model_save_file = os.path.join(args.save_dir, args.save_model + '.tar')
             if not os.path.exists(args.save_dir):
                 os.makedirs(args.save_dir)
+            
+            # Set model to train mode before saving
+            model.train()
             torch.save({
                 'state_dict': model.state_dict(), 
                 'best_loss': best_metric,
@@ -429,6 +426,8 @@ if __name__ == '__main__':
             print(f'✓ Model improved! Saved to {model_save_file}')
             print(f'  Valid Acc: {valid_acc:.4f} | Valid F1: {np.mean(valid_metrics["F1"]):.4f}\n')
         else:
+            # Set back to train mode for next epoch
+            model.train()
             print()
 
     print('\n' + '='*80)
@@ -449,11 +448,12 @@ if __name__ == '__main__':
     print('='*80 + '\n')
 
     outPRED_mcs = torch.FloatTensor().cuda()
+    test_labels_all = []
     model.eval()
     iters_per_epoch = len(test_loader)
     bar = Bar('Processing {}'.format('test inference'), max=len(test_loader))
     bar.check_tty = False
-    for epochID, (imagesA, imagesB, imagesC) in enumerate(test_loader):
+    for epochID, (imagesA, imagesB, imagesC, labels) in enumerate(test_loader):
         imagesA = imagesA.cuda()
         imagesB = imagesB.cuda()
         imagesC = imagesC.cuda()
@@ -461,11 +461,19 @@ if __name__ == '__main__':
         begin_time = time.time()
         _, _, _, _, result_mcs = model(imagesA, imagesB, imagesC)
         outPRED_mcs = torch.cat((outPRED_mcs, result_mcs.data), 0)
+        
+        # Collect labels
+        labels_np = np.argmax(labels.cpu().numpy(), axis=1)
+        test_labels_all.append(labels_np)
+        
         batch_time = time.time() - begin_time
         bar.suffix = '{} / {} | Time: {batch_time:.4f}'.format(epochID + 1, len(test_loader),
                                                                batch_time=batch_time * (iters_per_epoch - epochID) / 60)
         bar.next()
     bar.finish()
+    
+    # Concatenate all test labels
+    GT_QA_list = np.concatenate(test_labels_all)
 
     print('\n[INFO] Saving test predictions...')
     # save result into excel:
@@ -475,7 +483,6 @@ if __name__ == '__main__':
     # evaluation:
     df_gt = pd.read_csv(label_test_file)
     img_list = df_gt["image"].tolist()
-    GT_QA_list = np.array(df_gt["quality"].tolist())
     img_num = len(img_list)
     label_list = ["Good", "Usable", "Reject"]
 
