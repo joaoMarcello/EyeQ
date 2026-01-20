@@ -319,6 +319,42 @@ if __name__ == '__main__':
         train_loss = train_step(train_loader, model, epoch, optimizer, criterion, args)
         
         # ----------------------
+        # COMPUTE TRAIN METRICS (after training step)
+        # ----------------------
+        model.eval()
+        train_all_preds = []
+        train_all_labels = []
+        train_all_probs = []
+        
+        with torch.no_grad():
+            for imagesA, imagesB, imagesC, labels in train_loader:
+                imagesA = imagesA.to(device)
+                imagesB = imagesB.to(device)
+                imagesC = imagesC.to(device)
+                labels = labels.to(device)
+                
+                # Forward pass
+                _, _, _, _, outputs = model(imagesA, imagesB, imagesC)
+                
+                # Predictions
+                probs = outputs.cpu().numpy()
+                preds = np.argmax(probs, axis=1)
+                labels_np = np.argmax(labels.cpu().numpy(), axis=1)
+                
+                train_all_preds.append(preds)
+                train_all_labels.append(labels_np)
+                train_all_probs.append(probs)
+        
+        # Concatenate predictions
+        train_all_preds = np.concatenate(train_all_preds)
+        train_all_labels = np.concatenate(train_all_labels)
+        train_all_probs = np.concatenate(train_all_probs)
+        
+        # Calculate train metrics
+        train_metrics = compute_metric(train_all_labels, train_all_probs, target_names=["Good", "Usable", "Reject"])
+        train_acc = float((train_all_preds == train_all_labels).mean())
+        
+        # ----------------------
         # VALIDATION WITH FULL METRICS
         # ----------------------
         model.eval()
@@ -363,6 +399,7 @@ if __name__ == '__main__':
         valid_cm = confusion_matrix(valid_all_labels, valid_all_preds, labels=[0, 1, 2])
         
         print(f'\nEpoch {epoch+1}/{args.epochs} | Train Loss: {train_loss:.4f} | Valid Loss: {validation_loss:.4f}')
+        print(f'Train Acc: {train_acc:.4f} | Train F1: {np.mean(train_metrics["F1"]):.4f}')
         print(f'Valid Acc: {valid_acc:.4f} | Valid F1: {np.mean(valid_metrics["F1"]):.4f} | Valid AUC: {valid_metrics["AUC"]:.4f}')
         print(f'Current Valid Loss: {validation_loss:.4f} | Best Valid Loss: {best_metric:.4f} at epoch: {best_iter+1}')
         
@@ -373,6 +410,16 @@ if __name__ == '__main__':
             "epoch": epoch + 1,
             "train": {
                 "loss": float(train_loss),
+                "acc": float(train_acc),
+                "f1_macro": float(np.mean(train_metrics["F1"])),
+                "precision_macro": float(np.mean(train_metrics["Precision"])),
+                "sensitivity_macro": float(np.mean(train_metrics["Sensitivity"])),
+                "specificity_macro": float(np.mean(train_metrics["Specificity"])),
+                "auc": float(train_metrics["AUC"]),
+                "kappa": float(cohen_kappa_score(train_all_labels, train_all_preds)),
+                "f1_per_class": {"Good": float(train_metrics["F1"][0].item()), 
+                                 "Usable": float(train_metrics["F1"][1].item()), 
+                                 "Reject": float(train_metrics["F1"][2].item())},
             },
             "valid": {
                 "loss": float(validation_loss),
