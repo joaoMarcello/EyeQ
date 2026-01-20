@@ -31,24 +31,37 @@ def compute_metric(datanpGT, datanpPRED, target_names):
                           'ROC_T_' + str(i): roc_thresholds,
                           'AUC_' + str(i): outAUROC})
 
-    mPrecision = sum(tp) / sum(tp + fp)
-    mRecall = sum(tp) / sum(tp + fn)
+    mPrecision = sum(tp) / sum(tp + fp) if sum(tp + fp) > 0 else 0.0
+    mRecall = sum(tp) / sum(tp + fn) if sum(tp + fn) > 0 else 0.0
+    mSpecificity = sum(tn) / sum(fp + tn) if sum(fp + tn) > 0 else 0.0
+    
+    # Avoid division by zero in per-class metrics
+    with np.errstate(divide='ignore', invalid='ignore'):
+        sensitivity = tp / (tp + fn)
+        precision = tp / (tp + fp)
+        specificity = tn / (fp + tn)
+        
+        # Replace NaN/Inf with 0
+        sensitivity = np.nan_to_num(sensitivity, nan=0.0, posinf=0.0, neginf=0.0)
+        precision = np.nan_to_num(precision, nan=0.0, posinf=0.0, neginf=0.0)
+        specificity = np.nan_to_num(specificity, nan=0.0, posinf=0.0, neginf=0.0)
+    
     output = {
         'class_name': target_names,
         'F1': F1_metric,
         'AUC': mAUC / 3,
         'Accuracy': Accuracy_score,
 
-        'Sensitivity': tp / (tp + fn),
-        'Precision': tp / (tp + fp),
-        'Specificity': tn / (fp + tn),
+        'Sensitivity': sensitivity,
+        'Precision': precision,
+        'Specificity': specificity,
         'ROC_curve': ROC_curve,
         'tp': tp, 'tn': tn, 'fp': fp, 'fn': fn,
 
         'micro-Precision': mPrecision,
         'micro-Sensitivity': mRecall,
-        'micro-Specificity': sum(tn) / sum(fp + tn),
-        'micro-F1': 2*mPrecision * mRecall / (mPrecision + mRecall),
+        'micro-Specificity': mSpecificity,
+        'micro-F1': 2*mPrecision * mRecall / (mPrecision + mRecall) if (mPrecision + mRecall) > 0 else 0.0,
     }
 
     return output
