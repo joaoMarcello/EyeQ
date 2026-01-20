@@ -5,6 +5,7 @@ Simplifica a execução do Main_EyeQuality.py com parâmetros predefinidos
 
 import subprocess
 import sys
+import os
 
 def train_mcfnet(
     epochs=20,
@@ -41,8 +42,11 @@ def train_mcfnet(
     print("=" * 80)
     print()
     
-    # Execute
-    subprocess.run(cmd)
+    # Get the MCF_Net directory path
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Execute from MCF_Net directory
+    subprocess.run(cmd, cwd=script_dir)
 
 
 if __name__ == '__main__':

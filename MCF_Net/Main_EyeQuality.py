@@ -197,315 +197,316 @@ def generate_detailed_report(gt_labels, predictions, metrics_dict, args, best_ep
     return "\n".join(report)
 
 
-data_root = r'C:\Users\Public\Documents\DATASETS\Itapecuru\ORIGINAL_CLEAN_768x768'
+if __name__ == '__main__':
+    data_root = r'C:\Users\Public\Documents\DATASETS\Itapecuru\ORIGINAL_CLEAN_768x768'
 
-# Setting parameters
-parser = argparse.ArgumentParser(description='EyeQ_dense121')
-parser.add_argument('--model_dir', type=str, default='./result/')
-parser.add_argument('--save_dir', type=str, default='./checkpoints/')
-parser.add_argument('--pre_model', type=str, default=None)
-parser.add_argument('--save_model', type=str, default='DenseNet121_Itapecuru')
+    # Setting parameters
+    parser = argparse.ArgumentParser(description='EyeQ_dense121')
+    parser.add_argument('--model_dir', type=str, default='./result/')
+    parser.add_argument('--save_dir', type=str, default='./checkpoints/')
+    parser.add_argument('--pre_model', type=str, default=None)
+    parser.add_argument('--save_model', type=str, default='DenseNet121_Itapecuru')
 
-parser.add_argument('--crop_size', type=int, default=224)
-parser.add_argument('--label_idx', type=list, default=['Good', 'Usable', 'Reject'])
+    parser.add_argument('--crop_size', type=int, default=224)
+    parser.add_argument('--label_idx', type=list, default=['Good', 'Usable', 'Reject'])
 
-parser.add_argument('--n_classes', type=int, default=3)
-# Optimization options
-parser.add_argument('--epochs', default=20, type=int)
-parser.add_argument('--batch-size', default=4, type=int)
-parser.add_argument('--lr', default=0.01, type=float)
-parser.add_argument('--loss_w', default=[0.1, 0.1, 0.1, 0.1, 0.6], type=list)
+    parser.add_argument('--n_classes', type=int, default=3)
+    # Optimization options
+    parser.add_argument('--epochs', default=20, type=int)
+    parser.add_argument('--batch-size', default=4, type=int)
+    parser.add_argument('--lr', default=0.01, type=float)
+    parser.add_argument('--loss_w', default=[0.1, 0.1, 0.1, 0.1, 0.6], type=list)
 
-args = parser.parse_args()
+    args = parser.parse_args()
 
-# Images Labels - Itapecuru dataset
-train_images_dir = data_root  # All images in same directory
-label_train_file = '../data/revised/color/itapecuru_train_color_rev.csv'
-valid_images_dir = data_root  # All images in same directory
-label_valid_file = '../data/revised/color/itapecuru_valid_color_rev.csv'
-test_images_dir = data_root  # All images in same directory
-label_test_file = '../data/revised/color/itapecuru_test_color_rev.csv'
+    # Images Labels - Itapecuru dataset
+    train_images_dir = data_root  # All images in same directory
+    label_train_file = '../data/revised/color/itapecuru_train_color_rev.csv'
+    valid_images_dir = data_root  # All images in same directory
+    label_valid_file = '../data/revised/color/itapecuru_valid_color_rev.csv'
+    test_images_dir = data_root  # All images in same directory
+    label_test_file = '../data/revised/color/itapecuru_test_color_rev.csv'
 
-save_file_name = args.model_dir + args.save_model + '_test_predictions.csv'
+    save_file_name = args.model_dir + args.save_model + '_test_predictions.csv'
 
-best_metric = np.inf
-best_iter = 0
-# options
-cudnn.benchmark = True
+    best_metric = np.inf
+    best_iter = 0
+    # options
+    cudnn.benchmark = True
 
-model = dense121_mcs(n_class=args.n_classes)
+    model = dense121_mcs(n_class=args.n_classes)
 
-if args.pre_model is not None:
-    loaded_model = torch.load(os.path.join(args.model_dir, args.pre_model + '.tar'))
-    model.load_state_dict(loaded_model['state_dict'])
+    if args.pre_model is not None:
+        loaded_model = torch.load(os.path.join(args.model_dir, args.pre_model + '.tar'))
+        model.load_state_dict(loaded_model['state_dict'])
 
-model.to(device)
+    model.to(device)
 
-criterion = torch.nn.BCELoss(reduction='mean')
-optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+    criterion = torch.nn.BCELoss(reduction='mean')
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
 
-print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
+    print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
 
-transform_list1 = transforms.Compose([
-        transforms.Resize(256),
-        transforms.RandomResizedCrop(224),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomRotation(degrees=(-180, +180)),
-    ])
+    transform_list1 = transforms.Compose([
+            transforms.Resize(256),
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            transforms.RandomRotation(degrees=(-180, +180)),
+        ])
 
-transformList2 = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406],
-                             [0.229, 0.224, 0.225])
-    ])
+    transformList2 = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406],
+                                 [0.229, 0.224, 0.225])
+        ])
 
-transform_list_val1 = transforms.Compose([
-        transforms.Resize(224),
-        transforms.CenterCrop(224),
-    ])
+    transform_list_val1 = transforms.Compose([
+            transforms.Resize(224),
+            transforms.CenterCrop(224),
+        ])
 
-data_train = DatasetGenerator(data_dir=train_images_dir, list_file=label_train_file, transform1=transform_list1,
-                              transform2=transformList2, n_class=args.n_classes, set_name='train')
-train_loader = torch.utils.data.DataLoader(dataset=data_train, batch_size=args.batch_size,
-                                               shuffle=True, num_workers=4, pin_memory=True)
+    data_train = DatasetGenerator(data_dir=train_images_dir, list_file=label_train_file, transform1=transform_list1,
+                                  transform2=transformList2, n_class=args.n_classes, set_name='train')
+    train_loader = torch.utils.data.DataLoader(dataset=data_train, batch_size=args.batch_size,
+                                                   shuffle=True, num_workers=0, pin_memory=True)
 
-data_valid = DatasetGenerator(data_dir=valid_images_dir, list_file=label_valid_file, transform1=transform_list_val1,
-                             transform2=transformList2, n_class=args.n_classes, set_name='valid')
-valid_loader = torch.utils.data.DataLoader(dataset=data_valid, batch_size=args.batch_size,
-                                          shuffle=False, num_workers=4, pin_memory=True)
+    data_valid = DatasetGenerator(data_dir=valid_images_dir, list_file=label_valid_file, transform1=transform_list_val1,
+                                 transform2=transformList2, n_class=args.n_classes, set_name='valid')
+    valid_loader = torch.utils.data.DataLoader(dataset=data_valid, batch_size=args.batch_size,
+                                              shuffle=False, num_workers=0, pin_memory=True)
 
-data_test = DatasetGenerator(data_dir=test_images_dir, list_file=label_test_file, transform1=transform_list_val1,
-                             transform2=transformList2, n_class=args.n_classes, set_name='test')
-test_loader = torch.utils.data.DataLoader(dataset=data_test, batch_size=args.batch_size,
-                                          shuffle=False, num_workers=4, pin_memory=True)
+    data_test = DatasetGenerator(data_dir=test_images_dir, list_file=label_test_file, transform1=transform_list_val1,
+                                 transform2=transformList2, n_class=args.n_classes, set_name='test')
+    test_loader = torch.utils.data.DataLoader(dataset=data_test, batch_size=args.batch_size,
+                                              shuffle=False, num_workers=0, pin_memory=True)
 
-print(f'\n[Dataset Info]')
-print(f'Train samples: {len(data_train)}')
-print(f'Valid samples: {len(data_valid)}')
-print(f'Test samples: {len(data_test)}\n')
+    print(f'\n[Dataset Info]')
+    print(f'Train samples: {len(data_train)}')
+    print(f'Valid samples: {len(data_valid)}')
+    print(f'Test samples: {len(data_test)}\n')
 
-# Criar estrutura para histórico de métricas
-metrics_history = {"epochs": [], "config": {}}
-metrics_path = os.path.join(args.model_dir, args.save_model + '_metrics_history.json')
+    # Criar estrutura para histórico de métricas
+    metrics_history = {"epochs": [], "config": {}}
+    metrics_path = os.path.join(args.model_dir, args.save_model + '_metrics_history.json')
 
-# Salvar configuração do experimento
-metrics_history["config"] = {
-    "model": args.save_model,
-    "epochs": args.epochs,
-    "batch_size": args.batch_size,
-    "lr": args.lr,
-    "loss_weights": args.loss_w,
-    "image_size": args.crop_size,
-    "n_classes": args.n_classes,
-    "train_samples": len(data_train),
-    "valid_samples": len(data_valid),
-    "test_samples": len(data_test),
-}
-
-# Carregar histórico existente se houver
-if os.path.exists(metrics_path):
-    with open(metrics_path, 'r') as f:
-        metrics_history = json.load(f)
-    print(f'[INFO] Histórico de métricas carregado: {metrics_path}\n')
-
-# Train and val
-print('\n' + '='*80)
-print('STARTING TRAINING')
-print('='*80 + '\n')
-
-for epoch in range(0, args.epochs):
-    train_loss = train_step(train_loader, model, epoch, optimizer, criterion, args)
-    
-    # ----------------------
-    # VALIDATION WITH FULL METRICS
-    # ----------------------
-    model.eval()
-    validation_loss = 0.0
-    valid_all_preds = []
-    valid_all_labels = []
-    valid_all_probs = []
-    
-    with torch.no_grad():
-        for batch_data in valid_loader:
-            if len(batch_data) == 4:
-                imagesA, imagesB, imagesC, labels = batch_data
-            else:
-                # Fallback caso não tenha labels no valid
-                continue
-            
-            imagesA = imagesA.to(device)
-            imagesB = imagesB.to(device)
-            imagesC = imagesC.to(device)
-            labels = labels.to(device)
-            
-            # Forward pass
-            _, _, _, _, outputs = model(imagesA, imagesB, imagesC)
-            
-            # Loss
-            loss = criterion(outputs, labels)
-            validation_loss += loss.item()
-            
-            # Predictions
-            probs = outputs.cpu().numpy()
-            preds = np.argmax(probs, axis=1)
-            labels_np = np.argmax(labels.cpu().numpy(), axis=1)
-            
-            valid_all_preds.append(preds)
-            valid_all_labels.append(labels_np)
-            valid_all_probs.append(probs)
-    
-    validation_loss /= len(valid_loader)
-    
-    # Concatenar predições
-    valid_all_preds = np.concatenate(valid_all_preds)
-    valid_all_labels = np.concatenate(valid_all_labels)
-    valid_all_probs = np.concatenate(valid_all_probs)
-    
-    # Calcular métricas de validação
-    valid_metrics = compute_metric(valid_all_labels, valid_all_probs, target_names=["Good", "Usable", "Reject"])
-    valid_acc = float((valid_all_preds == valid_all_labels).mean())
-    valid_cm = confusion_matrix(valid_all_labels, valid_all_preds, labels=[0, 1, 2])
-    
-    print(f'\nEpoch {epoch+1}/{args.epochs} | Train Loss: {train_loss:.4f} | Valid Loss: {validation_loss:.4f}')
-    print(f'Valid Acc: {valid_acc:.4f} | Valid F1: {np.mean(valid_metrics["F1"]):.4f} | Valid AUC: {valid_metrics["AUC"]:.4f}')
-    print(f'Current Valid Loss: {validation_loss:.4f} | Best Valid Loss: {best_metric:.4f} at epoch: {best_iter+1}')
-    
-    # ----------------------
-    # SAVE METRICS TO JSON
-    # ----------------------
-    epoch_metrics = {
-        "epoch": epoch + 1,
-        "train": {
-            "loss": float(train_loss),
-        },
-        "valid": {
-            "loss": float(validation_loss),
-            "acc": float(valid_acc),
-            "f1_macro": float(np.mean(valid_metrics["F1"])),
-            "precision_macro": float(np.mean(valid_metrics["Precision"])),
-            "sensitivity_macro": float(np.mean(valid_metrics["Sensitivity"])),
-            "specificity_macro": float(np.mean(valid_metrics["Specificity"])),
-            "auc": float(valid_metrics["AUC"]),
-            "kappa": float(cohen_kappa_score(valid_all_labels, valid_all_preds)),
-            "confusion_matrix": valid_cm.tolist(),
-            "f1_per_class": {"Good": float(valid_metrics["F1"][0]), 
-                             "Usable": float(valid_metrics["F1"][1]), 
-                             "Reject": float(valid_metrics["F1"][2])},
-            "sensitivity_per_class": {"Good": float(valid_metrics["Sensitivity"][0]), 
-                                      "Usable": float(valid_metrics["Sensitivity"][1]), 
-                                      "Reject": float(valid_metrics["Sensitivity"][2])},
-            "specificity_per_class": {"Good": float(valid_metrics["Specificity"][0]), 
-                                      "Usable": float(valid_metrics["Specificity"][1]), 
-                                      "Reject": float(valid_metrics["Specificity"][2])},
-        },
+    # Salvar configuração do experimento
+    metrics_history["config"] = {
+        "model": args.save_model,
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "lr": args.lr,
+        "loss_weights": args.loss_w,
+        "image_size": args.crop_size,
+        "n_classes": args.n_classes,
+        "train_samples": len(data_train),
+        "valid_samples": len(data_valid),
+        "test_samples": len(data_test),
     }
-    
-    # Adicionar métricas da época ao histórico
-    metrics_history["epochs"].append(epoch_metrics)
-    
-    # Salvar JSON atualizado
-    if not os.path.exists(args.model_dir):
-        os.makedirs(args.model_dir)
-    with open(metrics_path, 'w') as f:
-        json.dump(metrics_history, f, indent=2)
 
-    # save model
-    if best_metric > validation_loss:
-        best_metric = validation_loss
-        best_iter = epoch
-        model_save_file = os.path.join(args.save_dir, args.save_model + '.tar')
-        if not os.path.exists(args.save_dir):
-            os.makedirs(args.save_dir)
-        torch.save({
-            'state_dict': model.state_dict(), 
-            'best_loss': best_metric,
-            'epoch': epoch,
-            'optimizer': optimizer.state_dict(),
-            'valid_acc': valid_acc,
-            'valid_f1': np.mean(valid_metrics["F1"]),
-        }, model_save_file)
-        print(f'✓ Model improved! Saved to {model_save_file}')
-        print(f'  Valid Acc: {valid_acc:.4f} | Valid F1: {np.mean(valid_metrics["F1"]):.4f}\n')
-    else:
-        print()
+    # Carregar histórico existente se houver
+    if os.path.exists(metrics_path):
+        with open(metrics_path, 'r') as f:
+            metrics_history = json.load(f)
+        print(f'[INFO] Histórico de métricas carregado: {metrics_path}\n')
 
-print('\n' + '='*80)
-print(f'TRAINING COMPLETED | Best model at epoch {best_iter+1} with validation loss: {best_metric:.4f}')
-print('='*80 + '\n')
+    # Train and val
+    print('\n' + '='*80)
+    print('STARTING TRAINING')
+    print('='*80 + '\n')
 
-# Load best model for testing
-print('[INFO] Loading best model for testing...')
-loaded_model = torch.load(os.path.join(args.save_dir, args.save_model + '.tar'))
-model.load_state_dict(loaded_model['state_dict'])
-model.to(device)
-print('[INFO] Best model loaded!\n')
+    for epoch in range(0, args.epochs):
+        train_loss = train_step(train_loader, model, epoch, optimizer, criterion, args)
+        
+        # ----------------------
+        # VALIDATION WITH FULL METRICS
+        # ----------------------
+        model.eval()
+        validation_loss = 0.0
+        valid_all_preds = []
+        valid_all_labels = []
+        valid_all_probs = []
+        
+        with torch.no_grad():
+            for batch_data in valid_loader:
+                if len(batch_data) == 4:
+                    imagesA, imagesB, imagesC, labels = batch_data
+                else:
+                    # Fallback caso não tenha labels no valid
+                    continue
+                
+                imagesA = imagesA.to(device)
+                imagesB = imagesB.to(device)
+                imagesC = imagesC.to(device)
+                labels = labels.to(device)
+                
+                # Forward pass
+                _, _, _, _, outputs = model(imagesA, imagesB, imagesC)
+                
+                # Loss
+                loss = criterion(outputs, labels)
+                validation_loss += loss.item()
+                
+                # Predictions
+                probs = outputs.cpu().numpy()
+                preds = np.argmax(probs, axis=1)
+                labels_np = np.argmax(labels.cpu().numpy(), axis=1)
+                
+                valid_all_preds.append(preds)
+                valid_all_labels.append(labels_np)
+                valid_all_probs.append(probs)
+        
+        validation_loss /= len(valid_loader)
+        
+        # Concatenar predições
+        valid_all_preds = np.concatenate(valid_all_preds)
+        valid_all_labels = np.concatenate(valid_all_labels)
+        valid_all_probs = np.concatenate(valid_all_probs)
+        
+        # Calcular métricas de validação
+        valid_metrics = compute_metric(valid_all_labels, valid_all_probs, target_names=["Good", "Usable", "Reject"])
+        valid_acc = float((valid_all_preds == valid_all_labels).mean())
+        valid_cm = confusion_matrix(valid_all_labels, valid_all_preds, labels=[0, 1, 2])
+        
+        print(f'\nEpoch {epoch+1}/{args.epochs} | Train Loss: {train_loss:.4f} | Valid Loss: {validation_loss:.4f}')
+        print(f'Valid Acc: {valid_acc:.4f} | Valid F1: {np.mean(valid_metrics["F1"]):.4f} | Valid AUC: {valid_metrics["AUC"]:.4f}')
+        print(f'Current Valid Loss: {validation_loss:.4f} | Best Valid Loss: {best_metric:.4f} at epoch: {best_iter+1}')
+        
+        # ----------------------
+        # SAVE METRICS TO JSON
+        # ----------------------
+        epoch_metrics = {
+            "epoch": epoch + 1,
+            "train": {
+                "loss": float(train_loss),
+            },
+            "valid": {
+                "loss": float(validation_loss),
+                "acc": float(valid_acc),
+                "f1_macro": float(np.mean(valid_metrics["F1"])),
+                "precision_macro": float(np.mean(valid_metrics["Precision"])),
+                "sensitivity_macro": float(np.mean(valid_metrics["Sensitivity"])),
+                "specificity_macro": float(np.mean(valid_metrics["Specificity"])),
+                "auc": float(valid_metrics["AUC"]),
+                "kappa": float(cohen_kappa_score(valid_all_labels, valid_all_preds)),
+                "confusion_matrix": valid_cm.tolist(),
+                "f1_per_class": {"Good": float(valid_metrics["F1"][0]), 
+                                 "Usable": float(valid_metrics["F1"][1]), 
+                                 "Reject": float(valid_metrics["F1"][2])},
+                "sensitivity_per_class": {"Good": float(valid_metrics["Sensitivity"][0]), 
+                                          "Usable": float(valid_metrics["Sensitivity"][1]), 
+                                          "Reject": float(valid_metrics["Sensitivity"][2])},
+                "specificity_per_class": {"Good": float(valid_metrics["Specificity"][0]), 
+                                          "Usable": float(valid_metrics["Specificity"][1]), 
+                                          "Reject": float(valid_metrics["Specificity"][2])},
+            },
+        }
+        
+        # Adicionar métricas da época ao histórico
+        metrics_history["epochs"].append(epoch_metrics)
+        
+        # Salvar JSON atualizado
+        if not os.path.exists(args.model_dir):
+            os.makedirs(args.model_dir)
+        with open(metrics_path, 'w') as f:
+            json.dump(metrics_history, f, indent=2)
+
+        # save model
+        if best_metric > validation_loss:
+            best_metric = validation_loss
+            best_iter = epoch
+            model_save_file = os.path.join(args.save_dir, args.save_model + '.tar')
+            if not os.path.exists(args.save_dir):
+                os.makedirs(args.save_dir)
+            torch.save({
+                'state_dict': model.state_dict(), 
+                'best_loss': best_metric,
+                'epoch': epoch,
+                'optimizer': optimizer.state_dict(),
+                'valid_acc': valid_acc,
+                'valid_f1': np.mean(valid_metrics["F1"]),
+            }, model_save_file)
+            print(f'✓ Model improved! Saved to {model_save_file}')
+            print(f'  Valid Acc: {valid_acc:.4f} | Valid F1: {np.mean(valid_metrics["F1"]):.4f}\n')
+        else:
+            print()
+
+    print('\n' + '='*80)
+    print(f'TRAINING COMPLETED | Best model at epoch {best_iter+1} with validation loss: {best_metric:.4f}')
+    print('='*80 + '\n')
+
+    # Load best model for testing
+    print('[INFO] Loading best model for testing...')
+    loaded_model = torch.load(os.path.join(args.save_dir, args.save_model + '.tar'))
+    model.load_state_dict(loaded_model['state_dict'])
+    model.to(device)
+    print('[INFO] Best model loaded!\n')
 
 
-# Testing on test set
-print('='*80)
-print('EVALUATING ON TEST SET')
-print('='*80 + '\n')
+    # Testing on test set
+    print('='*80)
+    print('EVALUATING ON TEST SET')
+    print('='*80 + '\n')
 
-outPRED_mcs = torch.FloatTensor().cuda()
-model.eval()
-iters_per_epoch = len(test_loader)
-bar = Bar('Processing {}'.format('test inference'), max=len(test_loader))
-bar.check_tty = False
-for epochID, (imagesA, imagesB, imagesC) in enumerate(test_loader):
-    imagesA = imagesA.cuda()
-    imagesB = imagesB.cuda()
-    imagesC = imagesC.cuda()
+    outPRED_mcs = torch.FloatTensor().cuda()
+    model.eval()
+    iters_per_epoch = len(test_loader)
+    bar = Bar('Processing {}'.format('test inference'), max=len(test_loader))
+    bar.check_tty = False
+    for epochID, (imagesA, imagesB, imagesC) in enumerate(test_loader):
+        imagesA = imagesA.cuda()
+        imagesB = imagesB.cuda()
+        imagesC = imagesC.cuda()
 
-    begin_time = time.time()
-    _, _, _, _, result_mcs = model(imagesA, imagesB, imagesC)
-    outPRED_mcs = torch.cat((outPRED_mcs, result_mcs.data), 0)
-    batch_time = time.time() - begin_time
-    bar.suffix = '{} / {} | Time: {batch_time:.4f}'.format(epochID + 1, len(test_loader),
-                                                           batch_time=batch_time * (iters_per_epoch - epochID) / 60)
-    bar.next()
-bar.finish()
+        begin_time = time.time()
+        _, _, _, _, result_mcs = model(imagesA, imagesB, imagesC)
+        outPRED_mcs = torch.cat((outPRED_mcs, result_mcs.data), 0)
+        batch_time = time.time() - begin_time
+        bar.suffix = '{} / {} | Time: {batch_time:.4f}'.format(epochID + 1, len(test_loader),
+                                                               batch_time=batch_time * (iters_per_epoch - epochID) / 60)
+        bar.next()
+    bar.finish()
 
-print('\n[INFO] Saving test predictions...')
-# save result into excel:
-save_output(label_test_file, outPRED_mcs, args, save_file=save_file_name)
-print(f'[INFO] Predictions saved to {save_file_name}\n')
+    print('\n[INFO] Saving test predictions...')
+    # save result into excel:
+    save_output(label_test_file, outPRED_mcs, args, save_file=save_file_name)
+    print(f'[INFO] Predictions saved to {save_file_name}\n')
 
-# evaluation:
-df_gt = pd.read_csv(label_test_file)
-img_list = df_gt["image"].tolist()
-GT_QA_list = np.array(df_gt["quality"].tolist())
-img_num = len(img_list)
-label_list = ["Good", "Usable", "Reject"]
+    # evaluation:
+    df_gt = pd.read_csv(label_test_file)
+    img_list = df_gt["image"].tolist()
+    GT_QA_list = np.array(df_gt["quality"].tolist())
+    img_num = len(img_list)
+    label_list = ["Good", "Usable", "Reject"]
 
-df_tmp = pd.read_csv(save_file_name)
-predict_tmp = np.zeros([img_num, 3])
-for idx in range(3):
-    predict_tmp[:, idx] = np.array(df_tmp[label_list[idx]].tolist())
+    df_tmp = pd.read_csv(save_file_name)
+    predict_tmp = np.zeros([img_num, 3])
+    for idx in range(3):
+        predict_tmp[:, idx] = np.array(df_tmp[label_list[idx]].tolist())
 
-print('[INFO] Computing metrics...\n')
-tmp_report = compute_metric(GT_QA_list, predict_tmp, target_names=label_list)
+    print('[INFO] Computing metrics...\n')
+    tmp_report = compute_metric(GT_QA_list, predict_tmp, target_names=label_list)
 
-# Quick summary
-print('='*80)
-print('TEST SET RESULTS (QUICK SUMMARY)')
-print('='*80)
-print(f' Accuracy:    {np.mean(tmp_report["Accuracy"]):.4f}')
-print(f' Precision:   {np.mean(tmp_report["Precision"]):.4f}')
-print(f' Sensitivity: {np.mean(tmp_report["Sensitivity"]):.4f}')
-print(f' F1-Score:    {np.mean(tmp_report["F1"]):.4f}')
-print(f' AUC:         {tmp_report["AUC"]:.4f}')
-print('='*80 + '\n')
+    # Quick summary
+    print('='*80)
+    print('TEST SET RESULTS (QUICK SUMMARY)')
+    print('='*80)
+    print(f' Accuracy:    {np.mean(tmp_report["Accuracy"]):.4f}')
+    print(f' Precision:   {np.mean(tmp_report["Precision"]):.4f}')
+    print(f' Sensitivity: {np.mean(tmp_report["Sensitivity"]):.4f}')
+    print(f' F1-Score:    {np.mean(tmp_report["F1"]):.4f}')
+    print(f' AUC:         {tmp_report["AUC"]:.4f}')
+    print('='*80 + '\n')
 
-# Generate detailed report
-print('[INFO] Generating detailed report...')
-report = generate_detailed_report(GT_QA_list, predict_tmp, tmp_report, args, best_iter, best_metric, label_list)
+    # Generate detailed report
+    print('[INFO] Generating detailed report...')
+    report = generate_detailed_report(GT_QA_list, predict_tmp, tmp_report, args, best_iter, best_metric, label_list)
 
-# Save report
-report_file = os.path.join(args.model_dir, args.save_model + '_test_report.txt')
-with open(report_file, 'w', encoding='utf-8') as f:
-    f.write(report)
-print(f'[INFO] Detailed report saved to: {report_file}')
-print('\n' + '='*80)
-print('EVALUATION COMPLETED')
-print('='*80)
+    # Save report
+    report_file = os.path.join(args.model_dir, args.save_model + '_test_report.txt')
+    with open(report_file, 'w', encoding='utf-8') as f:
+        f.write(report)
+    print(f'[INFO] Detailed report saved to: {report_file}')
+    print('\n' + '='*80)
+    print('EVALUATION COMPLETED')
+    print('='*80)
