@@ -15,10 +15,8 @@ class DenseNet121_v0(nn.Module):
         super(DenseNet121_v0, self).__init__()
         self.densenet121 = torchvision.models.densenet121(pretrained=False)
         num_ftrs = self.densenet121.classifier.in_features
-        self.densenet121.classifier = nn.Sequential(
-            nn.Linear(num_ftrs, n_class),
-            nn.Sigmoid()
-        )
+        # Removed activation - CrossEntropyLoss will apply softmax internally
+        self.densenet121.classifier = nn.Linear(num_ftrs, n_class)
 
     def forward(self, x):
         x = self.densenet121(x)
@@ -51,15 +49,9 @@ class dense121_mcs(nn.Module):
         self.featureC = C_model
         self.classC = C_model.densenet121.features
 
-        self.combine1 = nn.Sequential(
-            nn.Linear(n_class * 4, n_class),
-            nn.Sigmoid()
-        )
-
-        self.combine2 = nn.Sequential(
-            nn.Linear(num_ftrs * 3, n_class),
-            nn.Sigmoid()
-        )
+        # Removed activation - CrossEntropyLoss will apply softmax internally
+        self.combine1 = nn.Linear(n_class * 4, n_class)
+        self.combine2 = nn.Linear(num_ftrs * 3, n_class)
 
     def forward(self, x, y, z):
         x1 = self.featureA(x)

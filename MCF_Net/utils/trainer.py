@@ -26,14 +26,17 @@ def train_step(train_loader, model, epoch, optimizer, criterion, args):
         imagesC = imagesC.cuda()
 
         labels = labels.cuda()
+        
+        # Convert one-hot labels to class indices for CrossEntropyLoss
+        labels_indices = torch.argmax(labels, dim=1)
 
         out_A, out_B, out_C, out_F, combine = model(imagesA, imagesB, imagesC)
 
-        loss_x = criterion(out_A, labels)
-        loss_y = criterion(out_B, labels)
-        loss_z = criterion(out_C, labels)
-        loss_c = criterion(out_F, labels)
-        loss_f = criterion(combine, labels)
+        loss_x = criterion(out_A, labels_indices)
+        loss_y = criterion(out_B, labels_indices)
+        loss_z = criterion(out_C, labels_indices)
+        loss_c = criterion(out_F, labels_indices)
+        loss_f = criterion(combine, labels_indices)
 
         lossValue = loss_w[0]*loss_x+loss_w[1]*loss_y+loss_w[2]*loss_z+loss_w[3]*loss_c+loss_w[4]*loss_f
 
@@ -59,37 +62,70 @@ def train_step(train_loader, model, epoch, optimizer, criterion, args):
 
 
 def validation_step(val_loader, model, criterion):
-
-    # switch to train mode
+    """
+    Perform validation step with progress bar.
+    
+    Returns:
+        epoch_loss: Average loss over validation set
+        all_preds: Numpy array of predicted class indices
+        all_labels: Numpy array of true class indices
+        all_probs: Numpy array of prediction probabilities/logits
+    """
+    # switch to eval mode
     model.eval()
     epoch_loss = 0
+    all_preds = []
+    all_labels = []
+    all_probs = []
+    
     iters_per_epoch = len(val_loader)
     bar = Bar('Processing {}'.format('validation'), max=iters_per_epoch)
+    bar.check_tty = False
 
-    for step, (imagesA, imagesB, imagesC, labels) in enumerate(val_loader):
-        start_time = time.time()
+    with torch.no_grad():
+        for step, (imagesA, imagesB, imagesC, labels) in enumerate(val_loader):
+            start_time = time.time()
 
-        imagesA = imagesA.cuda()
-        imagesB = imagesB.cuda()
-        imagesC = imagesC.cuda()
-        labels = labels.cuda()
+            imagesA = imagesA.cuda()
+            imagesB = imagesB.cuda()
+            imagesC = imagesC.cuda()
+            labels = labels.cuda()
+            
+            # Convert one-hot labels to class indices for CrossEntropyLoss
+            labels_indices = torch.argmax(labels, dim=1)
 
-        _, _, _, _, outputs = model(imagesA, imagesB, imagesC)
-        with torch.no_grad():
-            loss = criterion(outputs, labels)
+            _, _, _, _, outputs = model(imagesA, imagesB, imagesC)
+            
+            # Loss
+            loss = criterion(outputs, labels_indices)
             epoch_loss += loss.item()
+            
+            # Collect predictions and labels
+            probs = outputs.cpu().numpy()
+            preds = np.argmax(probs, axis=1)
+            labels_np = labels_indices.cpu().numpy()
+            
+            all_preds.append(preds)
+            all_labels.append(labels_np)
+            all_probs.append(probs)
 
-        end_time = time.time()
+            end_time = time.time()
 
-        # measure elapsed time
-        batch_time = end_time - start_time
-        bar_str = '{} / {} | Time: {batch_time:.2f} mins'
-        bar.suffix = bar_str.format(step + 1, len(val_loader), batch_time=batch_time * (iters_per_epoch - step) / 60)
-        bar.next()
+            # measure elapsed time
+            batch_time = end_time - start_time
+            bar_str = '{} / {} | Time: {batch_time:.2f} mins'
+            bar.suffix = bar_str.format(step + 1, len(val_loader), batch_time=batch_time * (iters_per_epoch - step) / 60)
+            bar.next()
 
     epoch_loss = epoch_loss / iters_per_epoch
     bar.finish()
-    return epoch_loss
+    
+    # Concatenate all batches
+    all_preds = np.concatenate(all_preds)
+    all_labels = np.concatenate(all_labels)
+    all_probs = np.concatenate(all_probs)
+    
+    return epoch_loss, all_preds, all_labels, all_probs
 
 
 def save_output(label_test_file, dataPRED, args, save_file):

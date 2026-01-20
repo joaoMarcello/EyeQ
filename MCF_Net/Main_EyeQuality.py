@@ -242,7 +242,10 @@ if __name__ == '__main__':
 
     model.to(device)
 
-    criterion = torch.nn.BCELoss(reduction='mean')
+    # NOTE: The model uses Sigmoid outputs, but we need proper probabilities that sum to 1 for multi-class classification.
+    # CrossEntropyLoss expects raw logits (before softmax), so we'll need to convert.
+    # For now, we'll use NLLLoss with log-normalized sigmoid outputs as a workaround.
+    criterion = torch.nn.CrossEntropyLoss(reduction='mean')
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
 
     print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
@@ -355,48 +358,33 @@ if __name__ == '__main__':
         train_acc = float((train_all_preds == train_all_labels).mean())
         
         # ----------------------
-        # VALIDATION WITH FULL METRICS
+        # VALIDATION WITH FULL METRICS (using validation_step)
         # ----------------------
-        model.eval()
-        validation_loss = 0.0
-        valid_all_preds = []
-        valid_all_labels = []
-        valid_all_probs = []
-        
-        with torch.no_grad():
-            for imagesA, imagesB, imagesC, labels in valid_loader:
-                imagesA = imagesA.to(device)
-                imagesB = imagesB.to(device)
-                imagesC = imagesC.to(device)
-                labels = labels.to(device)
-                
-                # Forward pass
-                _, _, _, _, outputs = model(imagesA, imagesB, imagesC)
-                
-                # Loss
-                loss = criterion(outputs, labels)
-                validation_loss += loss.item()
-                
-                # Predictions
-                probs = outputs.cpu().numpy()
-                preds = np.argmax(probs, axis=1)
-                labels_np = np.argmax(labels.cpu().numpy(), axis=1)
-                
-                valid_all_preds.append(preds)
-                valid_all_labels.append(labels_np)
-                valid_all_probs.append(probs)
-        
-        validation_loss /= len(valid_loader)
-        
-        # Concatenar predições
-        valid_all_preds = np.concatenate(valid_all_preds)
-        valid_all_labels = np.concatenate(valid_all_labels)
-        valid_all_probs = np.concatenate(valid_all_probs)
+        validation_loss, valid_all_preds, valid_all_labels, valid_all_probs = validation_step(valid_loader, model, criterion)
         
         # Calcular métricas de validação
         valid_metrics = compute_metric(valid_all_labels, valid_all_probs, target_names=["Good", "Usable", "Reject"])
         valid_acc = float((valid_all_preds == valid_all_labels).mean())
         valid_cm = confusion_matrix(valid_all_labels, valid_all_preds, labels=[0, 1, 2])
+        
+        # # DEBUG: Print prediction distribution
+        # unique_preds, pred_counts = np.unique(valid_all_preds, return_counts=True)
+        # print(f'\n[DEBUG EPOCH {epoch}] Validation Prediction Distribution:')
+        # for pred_class, count in zip(unique_preds, pred_counts):
+        #     class_name = ["Good", "Usable", "Reject"][pred_class]
+        #     print(f'  Class {pred_class} ({class_name}): {count} predictions ({100*count/len(valid_all_preds):.1f}%)')
+        
+        # # DEBUG: Print label distribution
+        # unique_labels, label_counts = np.unique(valid_all_labels, return_counts=True)
+        # print(f'\n[DEBUG EPOCH {epoch}] Validation Label Distribution:')
+        # for label_class, count in zip(unique_labels, label_counts):
+        #     class_name = ["Good", "Usable", "Reject"][label_class]
+        #     print(f'  Class {label_class} ({class_name}): {count} labels ({100*count/len(valid_all_labels):.1f}%)')
+        
+        # # DEBUG: Print sample probabilities
+        # print(f'\n[DEBUG EPOCH {epoch}] Sample prediction probabilities (first 5 samples):')
+        # for i in range(min(5, len(valid_all_probs))):
+        #     print(f'  Sample {i}: probs={valid_all_probs[i]}, pred={valid_all_preds[i]}, true={valid_all_labels[i]}')
         
         print(f'\nEpoch {epoch+1}/{args.epochs} | Train Loss: {train_loss:.4f} | Valid Loss: {validation_loss:.4f}')
         print(f'Train Acc: {train_acc:.4f} | Train F1: {np.mean(train_metrics["F1"]):.4f}')
