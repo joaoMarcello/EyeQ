@@ -307,167 +307,167 @@ if __name__ == '__main__':
         "test_samples": len(data_test),
     }
 
-    # # Carregar histórico existente se houver
-    # if os.path.exists(metrics_path):
-    #     with open(metrics_path, 'r') as f:
-    #         metrics_history = json.load(f)
-    #     print(f'[INFO] Histórico de métricas carregado: {metrics_path}\n')
+    # Carregar histórico existente se houver
+    if os.path.exists(metrics_path):
+        with open(metrics_path, 'r') as f:
+            metrics_history = json.load(f)
+        print(f'[INFO] Histórico de métricas carregado: {metrics_path}\n')
 
-    # # Train and val
-    # print('\n' + '='*80)
-    # print('STARTING TRAINING')
-    # print('='*80 + '\n')
+    # Train and val
+    print('\n' + '='*80)
+    print('STARTING TRAINING')
+    print('='*80 + '\n')
 
-    # for epoch in range(0, args.epochs):
-    #     train_loss = train_step(train_loader, model, epoch, optimizer, criterion, args)
+    for epoch in range(0, args.epochs):
+        train_loss = train_step(train_loader, model, epoch, optimizer, criterion, args)
         
-    #     # ----------------------
-    #     # COMPUTE TRAIN METRICS (after training step)
-    #     # ----------------------
-    #     model.eval()
-    #     train_all_preds = []
-    #     train_all_labels = []
-    #     train_all_probs = []
+        # ----------------------
+        # COMPUTE TRAIN METRICS (after training step)
+        # ----------------------
+        model.eval()
+        train_all_preds = []
+        train_all_labels = []
+        train_all_probs = []
         
-    #     with torch.no_grad():
-    #         for imagesA, imagesB, imagesC, labels in train_loader:
-    #             imagesA = imagesA.to(device)
-    #             imagesB = imagesB.to(device)
-    #             imagesC = imagesC.to(device)
-    #             labels = labels.to(device)
+        with torch.no_grad():
+            for imagesA, imagesB, imagesC, labels in train_loader:
+                imagesA = imagesA.to(device)
+                imagesB = imagesB.to(device)
+                imagesC = imagesC.to(device)
+                labels = labels.to(device)
                 
-    #             # Forward pass
-    #             _, _, _, _, outputs = model(imagesA, imagesB, imagesC)
+                # Forward pass
+                _, _, _, _, outputs = model(imagesA, imagesB, imagesC)
                 
-    #             # Predictions
-    #             probs = outputs.cpu().numpy()
-    #             preds = np.argmax(probs, axis=1)
-    #             labels_np = np.argmax(labels.cpu().numpy(), axis=1)
+                # Predictions
+                probs = outputs.cpu().numpy()
+                preds = np.argmax(probs, axis=1)
+                labels_np = np.argmax(labels.cpu().numpy(), axis=1)
                 
-    #             train_all_preds.append(preds)
-    #             train_all_labels.append(labels_np)
-    #             train_all_probs.append(probs)
+                train_all_preds.append(preds)
+                train_all_labels.append(labels_np)
+                train_all_probs.append(probs)
         
-    #     # Concatenate predictions
-    #     train_all_preds = np.concatenate(train_all_preds)
-    #     train_all_labels = np.concatenate(train_all_labels)
-    #     train_all_probs = np.concatenate(train_all_probs)
+        # Concatenate predictions
+        train_all_preds = np.concatenate(train_all_preds)
+        train_all_labels = np.concatenate(train_all_labels)
+        train_all_probs = np.concatenate(train_all_probs)
         
-    #     # Calculate train metrics
-    #     train_metrics = compute_metric(train_all_labels, train_all_probs, target_names=["Good", "Usable", "Reject"])
-    #     train_acc = float((train_all_preds == train_all_labels).mean())
+        # Calculate train metrics
+        train_metrics = compute_metric(train_all_labels, train_all_probs, target_names=["Good", "Usable", "Reject"])
+        train_acc = float((train_all_preds == train_all_labels).mean())
         
-    #     # ----------------------
-    #     # VALIDATION WITH FULL METRICS (using validation_step)
-    #     # ----------------------
-    #     validation_loss, valid_all_preds, valid_all_labels, valid_all_probs = validation_step(valid_loader, model, criterion)
+        # ----------------------
+        # VALIDATION WITH FULL METRICS (using validation_step)
+        # ----------------------
+        validation_loss, valid_all_preds, valid_all_labels, valid_all_probs = validation_step(valid_loader, model, criterion)
         
-    #     # Calcular métricas de validação
-    #     valid_metrics = compute_metric(valid_all_labels, valid_all_probs, target_names=["Good", "Usable", "Reject"])
-    #     valid_acc = float((valid_all_preds == valid_all_labels).mean())
-    #     valid_cm = confusion_matrix(valid_all_labels, valid_all_preds, labels=[0, 1, 2])
+        # Calcular métricas de validação
+        valid_metrics = compute_metric(valid_all_labels, valid_all_probs, target_names=["Good", "Usable", "Reject"])
+        valid_acc = float((valid_all_preds == valid_all_labels).mean())
+        valid_cm = confusion_matrix(valid_all_labels, valid_all_preds, labels=[0, 1, 2])
         
-    #     # # DEBUG: Print prediction distribution
-    #     # unique_preds, pred_counts = np.unique(valid_all_preds, return_counts=True)
-    #     # print(f'\n[DEBUG EPOCH {epoch}] Validation Prediction Distribution:')
-    #     # for pred_class, count in zip(unique_preds, pred_counts):
-    #     #     class_name = ["Good", "Usable", "Reject"][pred_class]
-    #     #     print(f'  Class {pred_class} ({class_name}): {count} predictions ({100*count/len(valid_all_preds):.1f}%)')
+        # # DEBUG: Print prediction distribution
+        # unique_preds, pred_counts = np.unique(valid_all_preds, return_counts=True)
+        # print(f'\n[DEBUG EPOCH {epoch}] Validation Prediction Distribution:')
+        # for pred_class, count in zip(unique_preds, pred_counts):
+        #     class_name = ["Good", "Usable", "Reject"][pred_class]
+        #     print(f'  Class {pred_class} ({class_name}): {count} predictions ({100*count/len(valid_all_preds):.1f}%)')
         
-    #     # # DEBUG: Print label distribution
-    #     # unique_labels, label_counts = np.unique(valid_all_labels, return_counts=True)
-    #     # print(f'\n[DEBUG EPOCH {epoch}] Validation Label Distribution:')
-    #     # for label_class, count in zip(unique_labels, label_counts):
-    #     #     class_name = ["Good", "Usable", "Reject"][label_class]
-    #     #     print(f'  Class {label_class} ({class_name}): {count} labels ({100*count/len(valid_all_labels):.1f}%)')
+        # # DEBUG: Print label distribution
+        # unique_labels, label_counts = np.unique(valid_all_labels, return_counts=True)
+        # print(f'\n[DEBUG EPOCH {epoch}] Validation Label Distribution:')
+        # for label_class, count in zip(unique_labels, label_counts):
+        #     class_name = ["Good", "Usable", "Reject"][label_class]
+        #     print(f'  Class {label_class} ({class_name}): {count} labels ({100*count/len(valid_all_labels):.1f}%)')
         
-    #     # # DEBUG: Print sample probabilities
-    #     # print(f'\n[DEBUG EPOCH {epoch}] Sample prediction probabilities (first 5 samples):')
-    #     # for i in range(min(5, len(valid_all_probs))):
-    #     #     print(f'  Sample {i}: probs={valid_all_probs[i]}, pred={valid_all_preds[i]}, true={valid_all_labels[i]}')
+        # # DEBUG: Print sample probabilities
+        # print(f'\n[DEBUG EPOCH {epoch}] Sample prediction probabilities (first 5 samples):')
+        # for i in range(min(5, len(valid_all_probs))):
+        #     print(f'  Sample {i}: probs={valid_all_probs[i]}, pred={valid_all_preds[i]}, true={valid_all_labels[i]}')
         
-    #     print(f'\nEpoch {epoch+1}/{args.epochs} | Train Loss: {train_loss:.4f} | Valid Loss: {validation_loss:.4f}')
-    #     print(f'Train Acc: {train_acc:.4f} | Train F1: {np.mean(train_metrics["F1"]):.4f}')
-    #     print(f'Valid Acc: {valid_acc:.4f} | Valid F1: {np.mean(valid_metrics["F1"]):.4f} | Valid AUC: {valid_metrics["AUC"]:.4f}')
-    #     print(f'Current Valid Loss: {validation_loss:.4f} | Best Valid Loss: {best_metric:.4f} at epoch: {best_iter+1}')
+        print(f'\nEpoch {epoch+1}/{args.epochs} | Train Loss: {train_loss:.4f} | Valid Loss: {validation_loss:.4f}')
+        print(f'Train Acc: {train_acc:.4f} | Train F1: {np.mean(train_metrics["F1"]):.4f}')
+        print(f'Valid Acc: {valid_acc:.4f} | Valid F1: {np.mean(valid_metrics["F1"]):.4f} | Valid AUC: {valid_metrics["AUC"]:.4f}')
+        print(f'Current Valid Loss: {validation_loss:.4f} | Best Valid Loss: {best_metric:.4f} at epoch: {best_iter+1}')
         
-    #     # ----------------------
-    #     # SAVE METRICS TO JSON
-    #     # ----------------------
-    #     epoch_metrics = {
-    #         "epoch": epoch + 1,
-    #         "train": {
-    #             "loss": float(train_loss),
-    #             "acc": float(train_acc),
-    #             "f1_macro": float(np.mean(train_metrics["F1"])),
-    #             "precision_macro": float(np.mean(train_metrics["Precision"])),
-    #             "sensitivity_macro": float(np.mean(train_metrics["Sensitivity"])),
-    #             "specificity_macro": float(np.mean(train_metrics["Specificity"])),
-    #             "auc": float(train_metrics["AUC"]),
-    #             "kappa": float(cohen_kappa_score(train_all_labels, train_all_preds)),
-    #             "f1_per_class": {"Good": float(train_metrics["F1"][0].item()), 
-    #                              "Usable": float(train_metrics["F1"][1].item()), 
-    #                              "Reject": float(train_metrics["F1"][2].item())},
-    #         },
-    #         "valid": {
-    #             "loss": float(validation_loss),
-    #             "acc": float(valid_acc),
-    #             "f1_macro": float(np.mean(valid_metrics["F1"])),
-    #             "precision_macro": float(np.mean(valid_metrics["Precision"])),
-    #             "sensitivity_macro": float(np.mean(valid_metrics["Sensitivity"])),
-    #             "specificity_macro": float(np.mean(valid_metrics["Specificity"])),
-    #             "auc": float(valid_metrics["AUC"]),
-    #             "kappa": float(cohen_kappa_score(valid_all_labels, valid_all_preds)),
-    #             "confusion_matrix": valid_cm.tolist(),
-    #             "f1_per_class": {"Good": float(valid_metrics["F1"][0].item()), 
-    #                              "Usable": float(valid_metrics["F1"][1].item()), 
-    #                              "Reject": float(valid_metrics["F1"][2].item())},
-    #             "sensitivity_per_class": {"Good": float(valid_metrics["Sensitivity"][0].item()), 
-    #                                       "Usable": float(valid_metrics["Sensitivity"][1].item()), 
-    #                                       "Reject": float(valid_metrics["Sensitivity"][2].item())},
-    #             "specificity_per_class": {"Good": float(valid_metrics["Specificity"][0].item()), 
-    #                                       "Usable": float(valid_metrics["Specificity"][1].item()), 
-    #                                       "Reject": float(valid_metrics["Specificity"][2].item())},
-    #         },
-    #     }
+        # ----------------------
+        # SAVE METRICS TO JSON
+        # ----------------------
+        epoch_metrics = {
+            "epoch": epoch + 1,
+            "train": {
+                "loss": float(train_loss),
+                "acc": float(train_acc),
+                "f1_macro": float(np.mean(train_metrics["F1"])),
+                "precision_macro": float(np.mean(train_metrics["Precision"])),
+                "sensitivity_macro": float(np.mean(train_metrics["Sensitivity"])),
+                "specificity_macro": float(np.mean(train_metrics["Specificity"])),
+                "auc": float(train_metrics["AUC"]),
+                "kappa": float(cohen_kappa_score(train_all_labels, train_all_preds)),
+                "f1_per_class": {"Good": float(train_metrics["F1"][0].item()), 
+                                 "Usable": float(train_metrics["F1"][1].item()), 
+                                 "Reject": float(train_metrics["F1"][2].item())},
+            },
+            "valid": {
+                "loss": float(validation_loss),
+                "acc": float(valid_acc),
+                "f1_macro": float(np.mean(valid_metrics["F1"])),
+                "precision_macro": float(np.mean(valid_metrics["Precision"])),
+                "sensitivity_macro": float(np.mean(valid_metrics["Sensitivity"])),
+                "specificity_macro": float(np.mean(valid_metrics["Specificity"])),
+                "auc": float(valid_metrics["AUC"]),
+                "kappa": float(cohen_kappa_score(valid_all_labels, valid_all_preds)),
+                "confusion_matrix": valid_cm.tolist(),
+                "f1_per_class": {"Good": float(valid_metrics["F1"][0].item()), 
+                                 "Usable": float(valid_metrics["F1"][1].item()), 
+                                 "Reject": float(valid_metrics["F1"][2].item())},
+                "sensitivity_per_class": {"Good": float(valid_metrics["Sensitivity"][0].item()), 
+                                          "Usable": float(valid_metrics["Sensitivity"][1].item()), 
+                                          "Reject": float(valid_metrics["Sensitivity"][2].item())},
+                "specificity_per_class": {"Good": float(valid_metrics["Specificity"][0].item()), 
+                                          "Usable": float(valid_metrics["Specificity"][1].item()), 
+                                          "Reject": float(valid_metrics["Specificity"][2].item())},
+            },
+        }
         
-    #     # Adicionar métricas da época ao histórico
-    #     metrics_history["epochs"].append(epoch_metrics)
+        # Adicionar métricas da época ao histórico
+        metrics_history["epochs"].append(epoch_metrics)
         
-    #     # Salvar JSON atualizado
-    #     if not os.path.exists(args.model_dir):
-    #         os.makedirs(args.model_dir)
-    #     with open(metrics_path, 'w') as f:
-    #         json.dump(metrics_history, f, indent=2)
+        # Salvar JSON atualizado
+        if not os.path.exists(args.model_dir):
+            os.makedirs(args.model_dir)
+        with open(metrics_path, 'w') as f:
+            json.dump(metrics_history, f, indent=2)
 
-    #     # save model
-    #     if best_metric > validation_loss:
-    #         best_metric = validation_loss
-    #         best_iter = epoch
-    #         model_save_file = os.path.join(args.save_dir, args.save_model + '.tar')
-    #         if not os.path.exists(args.save_dir):
-    #             os.makedirs(args.save_dir)
+        # save model
+        if best_metric > validation_loss:
+            best_metric = validation_loss
+            best_iter = epoch
+            model_save_file = os.path.join(args.save_dir, args.save_model + '.tar')
+            if not os.path.exists(args.save_dir):
+                os.makedirs(args.save_dir)
             
-    #         # Set model to train mode before saving
-    #         model.train()
-    #         torch.save({
-    #             'state_dict': model.state_dict(), 
-    #             'best_loss': best_metric,
-    #             'epoch': epoch,
-    #             'optimizer': optimizer.state_dict(),
-    #             'valid_acc': valid_acc,
-    #             'valid_f1': np.mean(valid_metrics["F1"]),
-    #         }, model_save_file)
-    #         print(f'✓ Model improved! Saved to {model_save_file}')
-    #         print(f'  Valid Acc: {valid_acc:.4f} | Valid F1: {np.mean(valid_metrics["F1"]):.4f}\n')
-    #     else:
-    #         # Set back to train mode for next epoch
-    #         model.train()
-    #         print()
+            # Set model to train mode before saving
+            model.train()
+            torch.save({
+                'state_dict': model.state_dict(), 
+                'best_loss': best_metric,
+                'epoch': epoch,
+                'optimizer': optimizer.state_dict(),
+                'valid_acc': valid_acc,
+                'valid_f1': np.mean(valid_metrics["F1"]),
+            }, model_save_file)
+            print(f'✓ Model improved! Saved to {model_save_file}')
+            print(f'  Valid Acc: {valid_acc:.4f} | Valid F1: {np.mean(valid_metrics["F1"]):.4f}\n')
+        else:
+            # Set back to train mode for next epoch
+            model.train()
+            print()
 
-    # print('\n' + '='*80)
-    # print(f'TRAINING COMPLETED | Best model at epoch {best_iter+1} with validation loss: {best_metric:.4f}')
-    # print('='*80 + '\n')
+    print('\n' + '='*80)
+    print(f'TRAINING COMPLETED | Best model at epoch {best_iter+1} with validation loss: {best_metric:.4f}')
+    print('='*80 + '\n')
 
     # Load best model for testing
     print('[INFO] Loading best model for testing...')
@@ -510,9 +510,12 @@ if __name__ == '__main__':
     # Concatenate all test labels
     GT_QA_list = np.concatenate(test_labels_all)
 
+    # Apply softmax to convert raw logits to probabilities before saving
+    outPRED_mcs_probs = F.softmax(outPRED_mcs, dim=1)
+
     print('\n[INFO] Saving test predictions...')
-    # save result into excel:
-    save_output(label_test_file, outPRED_mcs, args, save_file=save_file_name)
+    # save result into excel (with softmax probabilities):
+    save_output(label_test_file, outPRED_mcs_probs, args, save_file=save_file_name)
     print(f'[INFO] Predictions saved to {save_file_name}\n')
 
     # evaluation:
